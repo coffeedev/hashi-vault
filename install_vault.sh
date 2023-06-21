@@ -23,15 +23,15 @@ sudo apt-get install -y unzip
 
 echo "Clean up"
 
-systemctl stop vault.service
-systemctl disable vault.service
+systemctl stop vault.service || true
+systemctl disable vault.service || true
 sleep 2
 
-rm -rf /etc/vault.d
-rm /etc/systemd/system/vault.service
+rm -rf /etc/vault || true
+rm /etc/systemd/system/vault.service || true
 #Comment this line if you want to save the data from the previous install. 
 #Ensure you have the unseal keys and token in a safe place
-rm -rf /opt/vault/data
+rm -rf /opt/vault || true
 
 
 echo "Adding Vault system users"
@@ -61,14 +61,15 @@ sudo unzip -o -d /usr/local/bin /tmp/${VAULT_ARCHIVE}
 # Create and manage permissions on directories
 echo "Configuring HashiCorp directories"
 directory_setup() {
-  sudo mkdir -pm 0750 /etc/${1}.d /var/lib/${1} /opt/${1}/data 
-  sudo mkdir -pm 0700 /opt/${1}/tls
-  sudo chown -R ${2}:${2} /etc/${1}.d /opt/${1}/data /opt/${1}/tls  
+  sudo mkdir -pm 0755 /etc/${1} /var/lib/${1} /opt/${1}/data 
+  sudo mkdir -pm 0755 /opt/${1}/tls
+  sudo chown -R ${2}:${2} /etc/${1} /opt/${1}/data /opt/${1}/tls
+    
 }
 
 directory_setup vault vault
 
-echo "Creating the key, in /etc/vault.d/tls & set the folder permissions to vault"
+echo "Creating the key, in /etc/vault/tls & set the folder permissions to vault"
 
 pushd .
 
@@ -91,7 +92,7 @@ echo "Creating Vault Configuration file"
 
 #remove previous ones, if any
 
-cat <<-EOF > /etc/vault.d/vault.hcl
+cat <<-EOF > /etc/vault/vault.hcl
 
 ui            = true
 cluster_addr  = "https://$IP_ADDRESS:8201"
@@ -122,7 +123,7 @@ Description="HashiCorp Vault - A tool for managing secrets"
 Documentation=https://www.vaultproject.io/docs/
 Requires=network-online.target
 After=network-online.target
-ConditionFileNotEmpty=/etc/vault.d/vault.hcl
+ConditionFileNotEmpty=/etc/vault/vault.hcl
 
 [Service]
 User=vault
@@ -149,7 +150,7 @@ LimitMEMLOCK=infinity
 # Prevent vault and any child process from gaining new privileges
 NoNewPrivileges=yes
 
-ExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl
+ExecStart=/usr/local/bin/vault server -config=/etc/vault/vault.hcl
 ExecReload=kill --signal HUP $MAINPID
 KillMode=process
 KillSignal=SIGINT
@@ -178,7 +179,7 @@ sudo systemctl status vault.service --no-pager
 # Create Vault License file
 echo "Creating Vault License file"
 
-#echo $VAULT_LICENSE > /etc/vault.d/vault.hclic
+#echo $VAULT_LICENSE > /etc/vault/vault.hclic
 
 # Cleanup
 sudo rm /tmp/$VAULT_ARCHIVE
